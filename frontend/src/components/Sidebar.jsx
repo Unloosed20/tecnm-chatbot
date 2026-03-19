@@ -22,6 +22,24 @@ const menuItems = [
   { label: "Créditos Complementarios", icon: BookOpen },
 ];
 
+function getInitials(name) {
+  const safeName = String(name || "").trim();
+  if (!safeName) return "??";
+
+  const parts = safeName.split(/\s+/).filter(Boolean);
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function getRoleLabel(role) {
+  if (role === "admin") return "Administrador";
+  return "Estudiante";
+}
+
 export default function Sidebar({
   activeItem,
   onSelectItem,
@@ -29,7 +47,13 @@ export default function Sidebar({
   activeChatId,
   onSelectChat,
   onCreateNewChat,
+  currentUser,
 }) {
+  const userInitials = getInitials(currentUser?.fullName);
+  const userName = currentUser?.fullName || "Usuario";
+  const userRole = getRoleLabel(currentUser?.role);
+  const userControlNumber = currentUser?.controlNumber || "";
+
   return (
     <aside className="flex h-screen flex-col border-r border-slate-200 bg-white">
       <div className="border-b border-slate-200 px-6 py-6">
@@ -117,12 +141,15 @@ export default function Sidebar({
       <div className="border-t border-slate-200 px-6 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0a3b82] font-semibold text-white">
-            JS
+            {userInitials}
           </div>
 
-          <div>
-            <p className="font-semibold text-slate-900">Juan Sánchez</p>
-            <p className="text-sm text-slate-500">Estudiante</p>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-slate-900">{userName}</p>
+            <p className="text-sm text-slate-500">{userRole}</p>
+            {userControlNumber && (
+              <p className="text-xs text-slate-400">{userControlNumber}</p>
+            )}
           </div>
         </div>
       </div>

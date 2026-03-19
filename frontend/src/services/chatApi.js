@@ -1,43 +1,54 @@
+import { getToken, clearSession } from "../utils/authStorage";
+
 const API_BASE_URL = "http://localhost:3001/api";
 
-export async function fetchChats() {
-  const response = await fetch(`${API_BASE_URL}/chats`);
+function buildAuthHeaders() {
+  const token = getToken();
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+async function handleApiResponse(response, defaultMessage) {
+  const data = await response.json();
 
   if (!response.ok) {
-    throw new Error("No se pudieron cargar los chats");
+    if (response.status === 401) {
+      clearSession();
+    }
+
+    throw new Error(data.error || defaultMessage);
   }
 
-  return response.json();
+  return data;
+}
+
+export async function fetchChats() {
+  const response = await fetch(`${API_BASE_URL}/chats`, {
+    headers: buildAuthHeaders(),
+  });
+
+  return handleApiResponse(response, "No se pudieron cargar los chats");
 }
 
 export async function createChat(section) {
   const response = await fetch(`${API_BASE_URL}/chats`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: buildAuthHeaders(),
     body: JSON.stringify({ section }),
   });
 
-  if (!response.ok) {
-    throw new Error("No se pudo crear el chat");
-  }
-
-  return response.json();
+  return handleApiResponse(response, "No se pudo crear el chat");
 }
 
 export async function sendMessage(chatId, payload) {
   const response = await fetch(`${API_BASE_URL}/chats/${chatId}/messages`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: buildAuthHeaders(),
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    throw new Error("No se pudo enviar el mensaje");
-  }
-
-  return response.json();
+  return handleApiResponse(response, "No se pudo enviar el mensaje");
 }
