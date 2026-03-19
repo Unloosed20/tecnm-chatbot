@@ -1,12 +1,14 @@
 const pool = require("../config/db");
 
-async function getAllChats() {
+async function getAllChatsByUser(userId) {
   const [rows] = await pool.query(
     `
-    SELECT id, title, section, created_at
+    SELECT id, user_id, title, section, created_at
     FROM chats
+    WHERE user_id = ?
     ORDER BY created_at DESC, id DESC
-    `
+    `,
+    [userId]
   );
 
   const chatsWithMessages = await Promise.all(
@@ -23,6 +25,7 @@ async function getAllChats() {
 
       return {
         id: chat.id,
+        userId: chat.user_id,
         title: chat.title,
         section: chat.section,
         created_at: chat.created_at,
@@ -34,15 +37,15 @@ async function getAllChats() {
   return chatsWithMessages;
 }
 
-async function getChatById(chatId) {
+async function getChatByIdForUser(chatId, userId) {
   const [chatRows] = await pool.query(
     `
-    SELECT id, title, section, created_at
+    SELECT id, user_id, title, section, created_at
     FROM chats
-    WHERE id = ?
+    WHERE id = ? AND user_id = ?
     LIMIT 1
     `,
-    [chatId]
+    [chatId, userId]
   );
 
   if (chatRows.length === 0) {
@@ -63,6 +66,7 @@ async function getChatById(chatId) {
 
   return {
     id: chat.id,
+    userId: chat.user_id,
     title: chat.title,
     section: chat.section,
     created_at: chat.created_at,
@@ -70,26 +74,26 @@ async function getChatById(chatId) {
   };
 }
 
-async function createChat(section = "Inicio") {
+async function createChat(userId, section = "Inicio") {
   const [result] = await pool.query(
     `
-    INSERT INTO chats (title, section)
-    VALUES ('Nuevo chat', ?)
+    INSERT INTO chats (user_id, title, section)
+    VALUES (?, 'Nuevo chat', ?)
     `,
-    [section]
+    [userId, section]
   );
 
-  return getChatById(result.insertId);
+  return getChatByIdForUser(result.insertId, userId);
 }
 
-async function updateChat(chatId, data) {
+async function updateChat(chatId, userId, data) {
   await pool.query(
     `
     UPDATE chats
     SET title = ?, section = ?
-    WHERE id = ?
+    WHERE id = ? AND user_id = ?
     `,
-    [data.title, data.section, chatId]
+    [data.title, data.section, chatId, userId]
   );
 }
 
@@ -116,8 +120,8 @@ async function createMessage(chatId, role, text) {
 }
 
 module.exports = {
-  getAllChats,
-  getChatById,
+  getAllChatsByUser,
+  getChatByIdForUser,
   createChat,
   updateChat,
   createMessage,

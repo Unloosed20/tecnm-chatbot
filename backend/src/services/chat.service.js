@@ -39,20 +39,20 @@ function getAssistantResponse(section, message) {
   return sectionReplies[section] || "Puedo ayudarte con información general del campus. Cuéntame tu duda con más detalle.";
 }
 
-async function getAllChats() {
-  return chatRepository.getAllChats();
+async function getAllChats(userId) {
+  return chatRepository.getAllChatsByUser(userId);
 }
 
-async function getChatById(id) {
-  return chatRepository.getChatById(id);
+async function getChatById(chatId, userId) {
+  return chatRepository.getChatByIdForUser(chatId, userId);
 }
 
-async function createChat(section = "Inicio") {
-  return chatRepository.createChat(section);
+async function createChat(userId, section = "Inicio") {
+  return chatRepository.createChat(userId, section);
 }
 
-async function sendMessage(chatId, section, messageText) {
-  const chat = await chatRepository.getChatById(chatId);
+async function sendMessage(chatId, userId, section, messageText) {
+  const chat = await chatRepository.getChatByIdForUser(chatId, userId);
 
   if (!chat) {
     return null;
@@ -81,12 +81,12 @@ async function sendMessage(chatId, section, messageText) {
   const shouldRename =
     chat.title === "Nuevo chat" || chat.title === "Bienvenida";
 
-  await chatRepository.updateChat(chat.id, {
+  await chatRepository.updateChat(chat.id, userId, {
     title: shouldRename ? buildChatTitle(trimmedMessage) : chat.title,
     section: effectiveSection,
   });
 
-  const updatedChat = await chatRepository.getChatById(chat.id);
+  const updatedChat = await chatRepository.getChatByIdForUser(chat.id, userId);
 
   return {
     chat: updatedChat,
