@@ -1,31 +1,42 @@
 const chatService = require("../services/chat.service");
 
-function listChats(req, res) {
-  const chats = chatService.getAllChats();
-  res.json(chats);
-}
-
-function getChat(req, res) {
-  const chat = chatService.getChatById(req.params.id);
-
-  if (!chat) {
-    return res.status(404).json({ error: "Chat not found" });
+async function listChats(req, res) {
+  try {
+    const chats = await chatService.getAllChats();
+    res.json(chats);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener chats" });
   }
-
-  res.json(chat);
 }
 
-function createChat(req, res) {
-  const { section } = req.body;
-  const chat = chatService.createChat(section);
-  res.status(201).json(chat);
+async function getChat(req, res) {
+  try {
+    const chat = await chatService.getChatById(req.params.id);
+
+    if (!chat) {
+      return res.status(404).json({ error: "Chat not found" });
+    }
+
+    res.json(chat);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener el chat" });
+  }
 }
 
-function createMessage(req, res) {
+async function createChat(req, res) {
+  try {
+    const { section } = req.body;
+    const chat = await chatService.createChat(section);
+    res.status(201).json(chat);
+  } catch (error) {
+    res.status(500).json({ error: "Error al crear el chat" });
+  }
+}
+
+async function createMessage(req, res) {
   try {
     const { section, message } = req.body;
-
-    const result = chatService.sendMessage(req.params.id, section, message);
+    const result = await chatService.sendMessage(req.params.id, section, message);
 
     if (!result) {
       return res.status(404).json({ error: "Chat not found" });
@@ -33,7 +44,7 @@ function createMessage(req, res) {
 
     res.status(201).json(result);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: error.message || "Error al enviar mensaje" });
   }
 }
 

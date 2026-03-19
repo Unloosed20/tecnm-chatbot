@@ -1,4 +1,4 @@
-const { chats } = require("../data/chat.store");
+const chatRepository = require("../repositories/chat.repository");
 
 function buildChatTitle(text) {
   const cleaned = String(text || "").trim();
@@ -39,28 +39,20 @@ function getAssistantResponse(section, message) {
   return sectionReplies[section] || "Puedo ayudarte con información general del campus. Cuéntame tu duda con más detalle.";
 }
 
-function getAllChats() {
-  return chats;
+async function getAllChats() {
+  return chatRepository.getAllChats();
 }
 
-function getChatById(id) {
-  return chats.find((chat) => chat.id === Number(id)) || null;
+async function getChatById(id) {
+  return chatRepository.getChatById(id);
 }
 
-function createChat(section = "Inicio") {
-  const newChat = {
-    id: Date.now(),
-    title: "Nuevo chat",
-    section,
-    messages: [],
-  };
-
-  chats.unshift(newChat);
-  return newChat;
+async function createChat(section = "Inicio") {
+  return chatRepository.createChat(section);
 }
 
-function sendMessage(chatId, section, messageText) {
-  const chat = chats.find((item) => item.id === Number(chatId));
+async function sendMessage(chatId, section, messageText) {
+  const chat = await chatRepository.getChatById(chatId);
 
   if (!chat) {
     return null;
@@ -72,27 +64,32 @@ function sendMessage(chatId, section, messageText) {
     throw new Error("Message is required");
   }
 
-  const userMessage = {
-    id: Date.now(),
-    role: "user",
-    text: trimmedMessage,
-  };
+  const effectiveSection = section || chat.section;
 
-  const assistantMessage = {
-    id: Date.now() + 1,
-    role: "assistant",
-    text: getAssistantResponse(section || chat.section, trimmedMessage),
-  };
+  const userMessage = await chatRepository.createMessage(
+    chat.id,
+    "user",
+    trimmedMessage
+  );
 
-  if (chat.title === "Nuevo chat" || chat.title === "Bienvenida") {
-    chat.title = buildChatTitle(trimmedMessage);
-  }
+  const assistantMessage = await chatRepository.createMessage(
+    chat.id,
+    "assistant",
+    getAssistantResponse(effectiveSection, trimmedMessage)
+  );
 
-  chat.section = section || chat.section;
-  chat.messages.push(userMessage, assistantMessage);
+  const shouldRename =
+    chat.title === "Nuevo chat" || chat.title === "Bienvenida";
+
+  await chatRepository.updateChat(chat.id, {
+    title: shouldRename ? buildChatTitle(trimmedMessage) : chat.title,
+    section: effectiveSection,
+  });
+
+  const updatedChat = await chatRepository.getChatById(chat.id);
 
   return {
-    chat,
+    chat: updatedChat,
     userMessage,
     assistantMessage,
   };
